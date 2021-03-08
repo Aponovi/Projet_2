@@ -1,3 +1,6 @@
+*.csv
+*.jsonlines
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -104,9 +107,9 @@ celerybeat.pid
 # Environments
 .env
 .venv
-env/
+../env/
 venv/
-ENV/
+env/
 env.bak/
 venv.bak/
 
