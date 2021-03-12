@@ -6,22 +6,19 @@ import ipdb
 
 class ToScrapeCSSSpider(scrapy.Spider):
     name = "toscrape-css"
-    start_urls = ['http://books.toscrape.com/catalogue/category/books/poetry_23/index.html']
-    # start_urls = ['http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html']
-    url = "http://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    start_urls = ['http://books.toscrape.com/catalogue/category/books/default_15/index.html']
     products_pod = []
-    # numero = 0
 
     def lecture_categorie(self, response):
         for categorie in response.css("article.product_pod"):
             cat = categorie.css("h3 > a::attr(href)").extract_first()
             cat = cat.replace("../../../", "http://books.toscrape.com/catalogue/")
-            return (re(url, callback=self.lecture_livre) for url in response.css.extract())
+            self.products_pod.append(cat)
 
     def lecture_livre(self, response):
         article = response.css("article.product_page")
         yield {
-            'product_page_url': "http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
+            'product_page_url': response.url,
             'universal_product_code (upc)': article.css("table th:contains('UPC') + td::text").extract_first(),
             'title': article.css("h1::text").extract_first(),
             'price_including_tax': article.css("table th:contains('Price (incl. tax)') + td::text").extract_first(),
@@ -36,25 +33,15 @@ class ToScrapeCSSSpider(scrapy.Spider):
             'image_url': ((article.css("img::attr(src)").extract_first()).replace("../..",
                                                                                   "http://books.toscrape.com"))
              }
-        # yield {'test': "test"}
 
     def parse(self, response):
-        # ipdb.set_trace(context=6)
-        if self is not None:
-            if self.url is not None:
-                if self.url.find('/catalogue/category/') == -1:
-                    self.lecture_livre(response)
-                    # yield {'test': "test"}
-                else:
-                    self.lecture_categorie(response)
 
+        self.lecture_categorie(response)
+        yield from response.follow_all(self.products_pod, self.lecture_livre)
 
-        # next_page_url = response.css("li.next > a::attr(href)").extract_first()
-        #         if self.numero < len(self.products_pod):
-        #             next_page_url = self.products_pod[self.numero]
-        #             self.numero += 1
-        #             self.url = next_page_url
-        #         else:
-        #             next_page_url = None
-        #         if next_page_url is not None:
-        #             yield scrapy.Request(response.urljoin(next_page_url))
+        pagination_links = response.css('li.next a')
+        yield from response.follow_all(pagination_links, self.parse)
+
+# response.urljoin(next_page)
+# next_page = response.css('li.next a::attr(href)').get()
+#         if next_page is not None:
