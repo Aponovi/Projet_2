@@ -1,21 +1,36 @@
 # -*- coding: utf-8 -*-
 import scrapy
+from scrapy.crawler import CrawlerProcess
+from scrapy.crawler import CrawlerRunner
+from twisted.internet import reactor, defer
 import re
 import ipdb
 
 
 class ToScrapeCSSSpider(scrapy.Spider):
     name = "toscrape-css"
-    start_urls = ['http://books.toscrape.com/catalogue/category/books/default_15/index.html']
+    start_urls = [ #'http://books.toscrape.com/catalogue/category/books/default_15/index.html'
+                   'http://books.toscrape.com/catalogue/category/books_1/index.html',
+                  ]
     products_pod = []
+    # categories = []
 
-    def lecture_categorie(self, response):
-        for categorie in response.css("article.product_pod"):
-            cat = categorie.css("h3 > a::attr(href)").extract_first()
-            cat = cat.replace("../../../", "http://books.toscrape.com/catalogue/")
-            self.products_pod.append(cat)
+    # def liste_categorie(self, response):
+    #     for categorie in response.css("ul.nav li li"):
+    #         # print(categorie)
+    #         cat = categorie.css("li a::attr(href)").extract_first()
+    #         # print(cat)
+    #         if cat is not None:
+    #             cat = cat.replace("../", "http://books.toscrape.com/catalogue/category/")
+    #             self.categories.append(cat)
 
-    def lecture_livre(self, response):
+    def liste_livres_categorie(self, response):
+        for liste_livres in response.css("article.product_pod"):
+            livre = liste_livres.css("h3 > a::attr(href)").extract_first()
+            livre = livre.replace("../../../", "http://books.toscrape.com/catalogue/")
+            self.products_pod.append(livre)
+
+    def description_livre(self, response):
         article = response.css("article.product_page")
         yield {
             'product_page_url': response.url,
@@ -32,16 +47,58 @@ class ToScrapeCSSSpider(scrapy.Spider):
                 "One", "1").replace("Two", "2").replace("Three", "3").replace("Four", "4").replace("Five", "5"),
             'image_url': ((article.css("img::attr(src)").extract_first()).replace("../..",
                                                                                   "http://books.toscrape.com"))
-             }
+        }
 
     def parse(self, response):
 
-        self.lecture_categorie(response)
-        yield from response.follow_all(self.products_pod, self.lecture_livre)
+        # self.liste_categorie(response)
+        # print(self.categories)
+
+        self.liste_livres_categorie(response)
+        yield from response.follow_all(self.products_pod, self.description_livre)
 
         pagination_links = response.css('li.next a')
         yield from response.follow_all(pagination_links, self.parse)
 
-# response.urljoin(next_page)
-# next_page = response.css('li.next a::attr(href)').get()
-#         if next_page is not None:
+
+
+
+process = CrawlerProcess(settings={
+    'FEEDS': {
+        "items.csv": {'format': "csv"},
+    },
+    'ITEM_PIPELINES' : {
+        'Projet_2.pipelines.CsvmanagerPipeline': 300
+    }
+})
+
+
+
+process.crawl(ToScrapeCSSSpider)
+process.start()
+
+
+# http://books.toscrape.com/catalogue/category/books/travel_2/index.html
+# runner = CrawlerRunner()
+#
+#
+# @defer.inlineCallbacks
+# def crawl():
+#     yield crawl(ToScrapeCSSSpider, start_urls=['http://books.toscrape.com/catalogue/category/books/default_15/index.html'])
+#     yield crawl(ToScrapeCSSSpider, start_urls=['http://books.toscrape.com/catalogue/category/books/travel_2/index.html'])
+#     reactor.stop()
+#
+#
+# crawl()
+# reactor.run()
+
+# process.crawl(ToScrapeCSSSpider,
+#               start_urls=['http://books.toscrape.com/catalogue/category/books/default_15/index.html'])
+# process.start(stop_after_crawl=False)
+# process = CrawlerProcess(settings={
+#     'FEEDS': {
+#         'items2.csv': {'format': "csv"},
+#     },
+# })
+# process.crawl(ToScrapeCSSSpider, start_urls=['http://books.toscrape.com/catalogue/category/books/travel_2/index.html'])
+# process.start()
