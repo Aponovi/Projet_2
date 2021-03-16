@@ -1,28 +1,15 @@
 # -*- coding: utf-8 -*-
 import scrapy
 from scrapy.crawler import CrawlerProcess
-from scrapy.crawler import CrawlerRunner
-from twisted.internet import reactor, defer
 import re
-import ipdb
+import hashlib
 
 
 class ToScrapeCSSSpider(scrapy.Spider):
     name = "toscrape-css"
-    start_urls = [ #'http://books.toscrape.com/catalogue/category/books/default_15/index.html'
-                   'http://books.toscrape.com/catalogue/category/books_1/index.html',
+    start_urls = ['http://books.toscrape.com/catalogue/category/books_1/index.html',
                   ]
     products_pod = []
-    # categories = []
-
-    # def liste_categorie(self, response):
-    #     for categorie in response.css("ul.nav li li"):
-    #         # print(categorie)
-    #         cat = categorie.css("li a::attr(href)").extract_first()
-    #         # print(cat)
-    #         if cat is not None:
-    #             cat = cat.replace("../", "http://books.toscrape.com/catalogue/category/")
-    #             self.categories.append(cat)
 
     def liste_livres_categorie(self, response):
         for liste_livres in response.css("article.product_pod"):
@@ -45,14 +32,13 @@ class ToScrapeCSSSpider(scrapy.Spider):
             'review_rating': article.css(
                 "p.star-rating::attr(class)").extract_first().replace("star-rating ", "").replace(
                 "One", "1").replace("Two", "2").replace("Three", "3").replace("Four", "4").replace("Five", "5"),
-            'image_url': ((article.css("img::attr(src)").extract_first()).replace("../..",
-                                                                                  "http://books.toscrape.com"))
-        }
+            'image_urls': [((article.css("img::attr(src)").extract_first()).replace("../..",
+                                                                                  "http://books.toscrape.com"))],
+            'images': hashlib.sha1(((article.css(
+                "img::attr(src)").extract_first()).replace("../..", "http://books.toscrape.com")).encode('utf-8')).hexdigest()
+            }
 
     def parse(self, response):
-
-        # self.liste_categorie(response)
-        # print(self.categories)
 
         self.liste_livres_categorie(response)
         yield from response.follow_all(self.products_pod, self.description_livre)
@@ -61,44 +47,18 @@ class ToScrapeCSSSpider(scrapy.Spider):
         yield from response.follow_all(pagination_links, self.parse)
 
 
-
-
 process = CrawlerProcess(settings={
     'FEEDS': {
-        "items.csv": {'format': "csv"},
+        "books.csv": {'format': "csv"},
     },
-    'ITEM_PIPELINES' : {
-        'Projet_2.pipelines.CsvmanagerPipeline': 300
-    }
+    'ITEM_PIPELINES': {
+        'Projet_2.pipelines.CsvmanagerPipeline': 300,
+        'scrapy.pipelines.images.ImagesPipeline': 400,
+    },
+    'IMAGES_STORE': './Images'
 })
-
 
 
 process.crawl(ToScrapeCSSSpider)
 process.start()
 
-
-# http://books.toscrape.com/catalogue/category/books/travel_2/index.html
-# runner = CrawlerRunner()
-#
-#
-# @defer.inlineCallbacks
-# def crawl():
-#     yield crawl(ToScrapeCSSSpider, start_urls=['http://books.toscrape.com/catalogue/category/books/default_15/index.html'])
-#     yield crawl(ToScrapeCSSSpider, start_urls=['http://books.toscrape.com/catalogue/category/books/travel_2/index.html'])
-#     reactor.stop()
-#
-#
-# crawl()
-# reactor.run()
-
-# process.crawl(ToScrapeCSSSpider,
-#               start_urls=['http://books.toscrape.com/catalogue/category/books/default_15/index.html'])
-# process.start(stop_after_crawl=False)
-# process = CrawlerProcess(settings={
-#     'FEEDS': {
-#         'items2.csv': {'format': "csv"},
-#     },
-# })
-# process.crawl(ToScrapeCSSSpider, start_urls=['http://books.toscrape.com/catalogue/category/books/travel_2/index.html'])
-# process.start()

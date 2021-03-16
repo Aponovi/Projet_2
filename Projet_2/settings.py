@@ -65,6 +65,7 @@ ROBOTSTXT_OBEY = True
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    'Projet_2.pipelines.CsvmanagerPipeline': 300,
+   'scrapy.pipelines.images.ImagesPipeline': 400
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

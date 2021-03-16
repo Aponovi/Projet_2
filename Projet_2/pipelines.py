@@ -29,7 +29,8 @@ class CsvmanagerPipeline(object):
                 'product_description',
                 'category',
                 'review_rating',
-                'image_url'])
+                'image_urls',
+                'images'])
             if vide:
                 writer.writeheader()
             writer.writerow(item)
