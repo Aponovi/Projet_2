@@ -7,7 +7,7 @@
 import csv
 
 
-class CsvmanagerPipeline(object):
+class CsvManagerPipeline(object):
     def process_item(self, item, spider):
         vide = False
         with open(item["category"] + '.csv', 'a', newline='') as file:

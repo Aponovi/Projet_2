@@ -33,13 +33,13 @@ class ToScrapeCSSSpider(scrapy.Spider):
                 "p.star-rating::attr(class)").extract_first().replace("star-rating ", "").replace(
                 "One", "1").replace("Two", "2").replace("Three", "3").replace("Four", "4").replace("Five", "5"),
             'image_urls': [((article.css("img::attr(src)").extract_first()).replace("../..",
-                                                                                  "http://books.toscrape.com"))],
+                                                                                    "http://books.toscrape.com"))],
             'images': hashlib.sha1(((article.css(
-                "img::attr(src)").extract_first()).replace("../..", "http://books.toscrape.com")).encode('utf-8')).hexdigest()
-            }
+                "img::attr(src)").extract_first()).replace("../..", "http://books.toscrape.com")).encode(
+                'utf-8')).hexdigest()
+        }
 
     def parse(self, response):
-
         self.liste_livres_categorie(response)
         yield from response.follow_all(self.products_pod, self.description_livre)
 
@@ -52,13 +52,11 @@ process = CrawlerProcess(settings={
         "books.csv": {'format': "csv"},
     },
     'ITEM_PIPELINES': {
-        'Projet_2.pipelines.CsvmanagerPipeline': 300,
+        'Projet_2.pipelines.CsvManagerPipeline': 300,
         'scrapy.pipelines.images.ImagesPipeline': 400,
     },
     'IMAGES_STORE': './Images'
 })
 
-
 process.crawl(ToScrapeCSSSpider)
 process.start()
-
